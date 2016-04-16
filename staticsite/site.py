@@ -31,10 +31,12 @@ class Site:
 
         # Map input file patterns to resource handlers
         from .markdown import MarkdownPages
+        from .restructuredtext import ReSTPages
         from .j2 import J2Pages
         from .taxonomy import TaxonomyPages
         self.page_handlers = [
             MarkdownPages(self),
+            ReSTPages(self),
             J2Pages(self),
             TaxonomyPages(self),
         ]
