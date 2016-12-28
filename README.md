@@ -51,7 +51,7 @@ Useful tips:
 * [doc/theme.md: `theme/` reference](doc/theme.md)
 * [doc/archetypes.md: `archetypes/` reference](doc/archetypes.md)
 * [doc/markdown.md: Markdown pages reference](doc/markdown.md)
-* [doc/restructuredtext.md: reStructuredText pages reference](doc/restructuredtext.rst)
+* [doc/restructuredtext.rst: reStructuredText pages reference](doc/restructuredtext.rst)
 * [doc/templates.md: Jinja2 templates reference](doc/templates.md)
 * [doc/taxonomies.md: taxonomy reference](doc/taxonomies.md)
 
