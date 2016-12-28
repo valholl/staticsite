@@ -5,7 +5,7 @@ Static site generator.
 Input:
 
 * a configuration file
-* markdown files
+* markdown or reStructuredText files
 * jinja2 templates
 * any other file that should be published as-is
 
@@ -18,7 +18,7 @@ Output:
 ```sh
 apt install python3-tz python3-unidecode python3-markdown python3-toml \
             python3-yaml python3-jinja2 python3-dateutil python3-livereload \
-            python3-slugify
+            python3-slugify python3-docutils
 ```
 
 ## Quick start
@@ -51,6 +51,7 @@ Useful tips:
 * [doc/theme.md: `theme/` reference](doc/theme.md)
 * [doc/archetypes.md: `archetypes/` reference](doc/archetypes.md)
 * [doc/markdown.md: Markdown pages reference](doc/markdown.md)
+* [doc/restructuredtext.md: reStructuredText pages reference](doc/restructuredtext.rst)
 * [doc/templates.md: Jinja2 templates reference](doc/templates.md)
 * [doc/taxonomies.md: taxonomy reference](doc/taxonomies.md)
 
