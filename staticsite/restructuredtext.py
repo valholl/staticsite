@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from .core import Archetype, Page, RenderedString, settings
+from .core import Archetype, Page, RenderedString
 import re
 import os
 import io
@@ -84,7 +84,7 @@ class ReSTPage(Page):
             src_relpath=relpath,
             src_linkpath=linkpath,
             dst_relpath=os.path.join(linkpath, "index.html"),
-            dst_link=os.path.join(settings.SITE_ROOT, linkpath))
+            dst_link=os.path.join(resenv.site.settings.SITE_ROOT, linkpath))
 
         # Shared restructuredtext environment
         self.resenv = resenv
