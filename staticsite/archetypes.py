@@ -19,11 +19,13 @@ class Archetypes:
         """
         # Map input file patterns to resource handlers
         from .markdown import MarkdownPages
+        from .restructuredtext import ReSTPages
         handlers = [
             # Only resources that have a front matter can be used here, because
             # we need to read the front matter to determine the destination
             # path
             MarkdownPages(self.site),
+            ReSTPages(self.site),
         ]
 
         for root, dnames, fnames in os.walk(self.root):

@@ -72,8 +72,9 @@ class New(SiteCommand):
             os.makedirs(os.path.dirname(abspath), exist_ok=True)
 
             with open(abspath, "wt") as out:
-                out.write(front_matter)
-                print(file=out)
+                if front_matter:
+                    out.write(front_matter)
+                    print(file=out)
                 for line in body:
                     print(line, file=out)
         else:

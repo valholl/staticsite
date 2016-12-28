@@ -41,6 +41,8 @@ def parse_rest(fd):
                 except:
                     log.exception("%s: failed to parse front matter", self.src_relpath)
                 docinfo_data['tags'] = tags
+            elif 'path' in child.attributes.get('classes'):
+                docinfo_data['path'] = child.children[1].astext().strip()
         else:
             docinfo_data[child.tagname] = child.astext()
     doctree.remove(info)
@@ -91,6 +93,9 @@ class ReSTPages:
         if not (relpath.endswith(name + '.rst') or
                 relpath.endswith(name + ".rest")):
             return None
+        root, ext = os.path.splitext(os.path.basename(relpath))
+        if not root == name:
+            return None
         return ReSTArchetype(self, archetypes, relpath)
 
 
@@ -101,7 +106,27 @@ class ReSTArchetype(Archetype):
         self.archetypes = archetypes
 
     def render(self, **kw):
-        raise NotImplementedError
+        """
+        Process the archetype returning its parsed front matter in a dict, and
+        its contents in a string
+        """
+        # Render the archetype with jinja2
+        abspath = os.path.join(self.archetypes.root, self.relpath)
+        with open(abspath, "rt") as fd:
+            template = self.site.theme.jinja2.from_string(fd.read())
+
+        rendered = template.render(**kw)
+
+        # Reparse the archetype to load the metadata
+        with io.StringIO(rendered) as fd:
+            try:
+                meta, rst_body, rst_parts = parse_rest(fd)
+            except:
+                log.exception("archetype %s: failed to parse front matter", self.relpath)
+
+        style = 'rest'
+
+        return style, meta, rendered.split('\n')
 
 
 class ReSTPage(Page):
