@@ -9,11 +9,38 @@ import subprocess
 import shlex
 from collections import OrderedDict
 from .commands import SiteCommand, CmdlineError
-from .core import settings
 from .archetypes import Archetypes
 import logging
 
 log = logging.getLogger()
+
+class LazyTitle:
+    """
+    Wrapper for the value of a post title.
+
+    If no value has been provided and one is requested by the template, ask the
+    user for one.
+    """
+    def __init__(self, title=None):
+        self.title = title
+
+    def __str__(self):
+        if self.title is None:
+            self.title = input("Please enter the post title: ")
+        return self.title
+
+
+class LazySlug:
+    """
+    Generate a slug from the value of LazyTitle
+    """
+    def __init__(self, site, lazy_title):
+        self.site = site
+        self.lazy_title = lazy_title
+
+    def __str__(self):
+        return self.site.slugify(str(self.lazy_title))
+
 
 class New(SiteCommand):
     "create a new page"
@@ -28,15 +55,8 @@ class New(SiteCommand):
             raise CmdlineError("archetype {} not found".format(self.args.archetype))
         log.info("Using archetype %s", archetype.relpath)
 
-        title = self.args.title
-        if title is None:
-            title = input("Please enter the post title: ")
-
-        if title is None:
-            slug = None
-        else:
-            slug = site.slugify(title)
-
+        title = LazyTitle(self.args.title)
+        slug = LazySlug(site, title)
         meta_style, meta, body = archetype.render(slug=slug, title=title)
 
         relpath = meta.pop("path", None)
@@ -60,8 +80,8 @@ class New(SiteCommand):
             log.info("%s already exists: reusing it", abspath)
 
         if not self.args.noedit:
-            settings_dict = settings.as_dict()
-            cmd = [x.format(name=abspath, slug=slug, **settings_dict) for x in settings.EDIT_COMMAND]
+            settings_dict = site.settings.as_dict()
+            cmd = [x.format(name=abspath, slug=slug, **settings_dict) for x in site.settings.EDIT_COMMAND]
             try:
                 subprocess.check_call(cmd)
             except subprocess.CalledProcessError as e:

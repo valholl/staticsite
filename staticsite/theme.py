@@ -3,7 +3,7 @@ import jinja2
 import os
 import re
 import fnmatch
-from .core import settings
+import datetime
 import logging
 
 log = logging.getLogger()
@@ -25,9 +25,9 @@ class Theme:
         )
 
         # Add settings to jinja2 globals
-        for x in dir(settings):
+        for x in dir(self.site.settings):
             if not x.isupper(): continue
-            self.jinja2.globals[x] = getattr(settings, x)
+            self.jinja2.globals[x] = getattr(self.site.settings, x)
 
         # Install site's functions into the jinja2 environment
         self.jinja2.globals.update(
@@ -35,9 +35,11 @@ class Theme:
             url_for=self.jinja2_url_for,
             site_pages=self.jinja2_site_pages,
             now=self.site.generation_time,
+            next_month=(self.site.generation_time.replace(day=1) + datetime.timedelta(days=40)).replace(day=1, hour=0, minute=0, second=0, microsecond=0),
             taxonomies=self.jinja2_taxonomies,
         )
         self.jinja2.filters["datetime_format"] = self.jinja2_datetime_format
+        self.jinja2.filters["markdown"] = self.jinja2_markdown
         self.jinja2.filters["basename"] = self.jinja2_basename
 
         self.dir_template = self.jinja2.get_template("dir.html")
@@ -47,6 +49,10 @@ class Theme:
 
     def jinja2_basename(self, val):
         return os.path.basename(val)
+
+    @jinja2.contextfilter
+    def jinja2_markdown(self, context, mdtext):
+        return jinja2.Markup(self.site.markdown_renderer.render(context.parent["page"], mdtext))
 
     @jinja2.contextfilter
     def jinja2_datetime_format(self, context, dt, format=None):

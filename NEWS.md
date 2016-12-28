@@ -1,5 +1,20 @@
 # staticsite user-relevant changes
 
+# New in version 0.5
+
+* Fixed markdown syntax for link targets in `example/archetypes/links.md`
+
+# New in version 0.4
+
+* Pages with dates in the future are considered drafts not yet to be published.
+  Added option --draft to include them in the rendering.
+* Added `{{next_month}}` to the template variables.
+* Default editor configuration appends a `+` to the command line to open the
+  file with the cursor at the end.
+* If the archetype does not need a title or a slug, the `-t` argument to `ssite
+  serve` is optional and no title will be asked interactively.
+* Documented how to use staticsite to blog a monthly collection of links.
+
 # New in version 0.3
 
 * Allow to point to .py configuration instead of project on command line.

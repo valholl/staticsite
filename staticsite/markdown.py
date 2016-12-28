@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from .core import Archetype, Page, RenderedString, settings
+from .core import Archetype, Page, RenderedString
 import re
 import os
 import io
@@ -108,10 +108,17 @@ class MarkdownPages:
             self._redirect_template = self.site.theme.jinja2.get_template("redirect.html")
         return self._redirect_template
 
-    def render(self, page):
+    def render(self, page, content=None):
+        """
+        Render markdown in the context of the given page.
+
+        It renders the page content by default, unless `content` is set to a
+        different markdown string.
+        """
+        if content is None: content = page.get_content()
         self.md_staticsite.set_page(page)
         self.markdown.reset()
-        return self.markdown.convert(page.get_content())
+        return self.markdown.convert(content)
 
     def try_load_page(self, root_abspath, relpath):
         if not relpath.endswith(".md"): return None
@@ -205,7 +212,7 @@ class MarkdownPage(Page):
             src_relpath=relpath,
             src_linkpath=linkpath,
             dst_relpath=os.path.join(linkpath, "index.html"),
-            dst_link=os.path.join(settings.SITE_ROOT, linkpath))
+            dst_link=os.path.join(mdenv.site.settings.SITE_ROOT, linkpath))
 
         # Shared markdown environment
         self.mdenv = mdenv
@@ -219,10 +226,6 @@ class MarkdownPage(Page):
         # Markdown content of the page rendered into html
         self.md_html = None
 
-    def get_content(self):
-        return "\n".join(self.body)
-
-    def read_metadata(self):
         # Read the contents
         src = self.src_abspath
         if self.meta.get("date", None) is None:
@@ -254,6 +257,9 @@ class MarkdownPage(Page):
         date = self.meta.get("date", None)
         if date is not None and not isinstance(date, datetime.datetime):
             self.meta["date"] = dateutil.parser.parse(date)
+
+    def get_content(self):
+        return "\n".join(self.body)
 
     def check(self, checker):
         self.mdenv.render(self)
