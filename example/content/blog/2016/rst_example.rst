@@ -15,3 +15,21 @@ matter and removed from the generated files.
 
 .. _Sphinx: http://www.sphinx-doc.org/en/stable/markup/misc.html#file-wide-metadata
 
+Syntax highlighting almost works (requires support in the stylesheet;
+see the `docutils docs`_ for details), and line numbers can be added to
+code snippets.
+
+.. _`docutils docs`: http://docutils.sourceforge.net/docs/ref/rst/directives.html#code
+
+.. code:: python
+   :number-lines: 0
+
+   import this
+
+And also inline images work:
+
+.. image:: example.png
+   :alt: example image
+
+(image from `wikimedia commons
+<https://commons.wikimedia.org/wiki/File:Example_image.png>`_)
