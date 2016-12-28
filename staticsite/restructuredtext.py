@@ -154,10 +154,6 @@ class ReSTPage(Page):
         if date is not None and not isinstance(date, datetime.datetime):
             self.meta["date"] = dateutil.parser.parse(date)
 
-        if not self.meta.get("title", ""):
-            self.meta['title'] = self.rst_parts['title']
-
-
     def check(self, checker):
         self.resenv.render(self)
 
