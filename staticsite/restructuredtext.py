@@ -7,17 +7,42 @@ import io
 import pytz
 import datetime
 import dateutil.parser
+from docutils.core import publish_parts, publish_doctree
+from docutils.nodes import docinfo, title
 
 import logging
 
 log = logging.getLogger()
 
 
-def parse_rest_with_front_matter(fd):
-    return ([], [])
+def parse_rest(fd):
+    """
+    Parse a rest document.
 
-def parse_front_matter(lines):
-    return "rest", {}
+    Return a tuple of 3 elements:
+        * a dict with the first docinfo entries
+        * the rst text without the first docinfo
+        * the html5 parts rendered from this text
+    """
+    rst_lines = fd.readlines()
+
+    # extract docinfo
+    doctree = publish_doctree(''.join(rst_lines))
+    info = doctree.children[doctree.first_child_matching_class(docinfo)]
+    docinfo_data = {}
+    for child in info.children:
+        docinfo_data[child.tagname] = child.astext()
+    doctree.remove(info)
+
+    # remove docinfo and empty lines
+    while (rst_lines[0] == '' or rst_lines[0][0] in [':', ' ', '\t']):
+        rst_lines.pop(0)
+
+    # render html5 parts
+    rst_text = ''.join(rst_lines)
+    parts = publish_parts(rst_text, writer_name="html5")
+
+    return docinfo_data, rst_text, parts
 
 
 class ReSTPages:
@@ -39,9 +64,10 @@ class ReSTPages:
             self._redirect_template = self.site.theme.jinja2.get_template("redirect.html")
         return self._redirect_template
 
-    def render(self, page):
-        # TODO: implement this
-        return page.get_content()
+    def render(self, page, content=None):
+        if content is None:
+            content = page.get_content()
+        return publish_parts(content, writer_name="html5")['body']
 
     def try_load_page(self, root_abspath, relpath):
         if not (relpath.endswith(".rst") or relpath.endswith(".rest")):
@@ -99,7 +125,7 @@ class ReSTPage(Page):
         self.rest_html = None
 
     def get_content(self):
-        return "\n".join(self.body)
+        return self.rst_body
 
     def read_metadata(self):
         src = self.src_abspath
@@ -107,21 +133,19 @@ class ReSTPage(Page):
             self.meta["date"] = pytz.utc.localize(datetime.datetime.utcfromtimestamp(os.path.getmtime(src)))
 
         with open(src, "rt") as fd:
-            self.front_matter, self.body = parse_rest_with_front_matter(fd)
-
-        try:
-            style, meta = parse_front_matter(self.front_matter)
-            self.meta.update(**meta)
-        except:
-            log.exception("%s: failed to parse front matter", self.src_relpath)
-
-        # Remove leading empty lines
-        while self.body and not self.body[0]:
-            self.body.pop(0)
+            try:
+                meta, self.rst_body, self.rst_parts = parse_rest(fd)
+                self.meta.update(**meta)
+            except:
+                log.exception("%s: failed to parse front matter", self.src_relpath)
 
         date = self.meta.get("date", None)
         if date is not None and not isinstance(date, datetime.datetime):
             self.meta["date"] = dateutil.parser.parse(date)
+
+        if not self.meta.get("title", ""):
+            self.meta['title'] = self.rst_parts['title']
+
 
     def check(self, checker):
         self.resenv.render(self)
@@ -143,7 +167,7 @@ class ReSTPage(Page):
         res[self.dst_relpath] = RenderedString(html)
 
         for relpath in self.meta.get("aliases", ()):
-            html = self.mdenv.redirect_template.render(
+            html = self.resenv.redirect_template.render(
                 page=self,
             )
             res[os.path.join(relpath, "index.html")] = RenderedString(html)
