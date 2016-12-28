@@ -31,7 +31,18 @@ def parse_rest(fd):
     info = doctree.children[doctree.first_child_matching_class(docinfo)]
     docinfo_data = {}
     for child in info.children:
-        docinfo_data[child.tagname] = child.astext()
+        if child.tagname == 'field':
+            if 'tags' in child.attributes.get('classes'):
+                tags = []
+                try:
+                    tag_list = child.children[1][0]
+                    for tag in tag_list.children:
+                        tags.append(tag.astext())
+                except:
+                    log.exception("%s: failed to parse front matter", self.src_relpath)
+                docinfo_data['tags'] = tags
+        else:
+            docinfo_data[child.tagname] = child.astext()
     doctree.remove(info)
 
     # remove docinfo and empty lines
