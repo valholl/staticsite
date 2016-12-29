@@ -15,7 +15,7 @@ import logging
 log = logging.getLogger()
 
 
-def parse_rest(fd):
+def parse_rest(fd, t_names):
     """
     Parse a rest document.
 
@@ -32,17 +32,18 @@ def parse_rest(fd):
     docinfo_data = {}
     for child in info.children:
         if child.tagname == 'field':
-            if 'tags' in child.attributes.get('classes'):
-                tags = []
-                try:
-                    tag_list = child.children[1][0]
-                    for tag in tag_list.children:
-                        tags.append(tag.astext())
-                except:
-                    log.exception("%s: failed to parse front matter", self.src_relpath)
-                docinfo_data['tags'] = tags
-            elif 'path' in child.attributes.get('classes'):
+            if 'path' in child.attributes.get('classes'):
                 docinfo_data['path'] = child.children[1].astext().strip()
+            for t in t_names:
+                if t in child.attributes.get('classes'):
+                    tags = []
+                    try:
+                        tag_list = child.children[1][0]
+                        for tag in tag_list.children:
+                            tags.append(tag.astext())
+                    except:
+                        log.exception("%s: failed to parse front matter", self.src_relpath)
+                    docinfo_data[t] = tags
         else:
             docinfo_data[child.tagname] = child.astext()
     doctree.remove(info)
@@ -120,7 +121,7 @@ class ReSTArchetype(Archetype):
         # Reparse the archetype to load the metadata
         with io.StringIO(rendered) as fd:
             try:
-                meta, rst_body, rst_parts = parse_rest(fd)
+                meta, rst_body, rst_parts = parse_rest(fd, [])
             except:
                 log.exception("archetype %s: failed to parse front matter", self.relpath)
 
@@ -168,9 +169,10 @@ class ReSTPage(Page):
         if self.meta.get("date", None) is None:
             self.meta["date"] = pytz.utc.localize(datetime.datetime.utcfromtimestamp(os.path.getmtime(src)))
 
+        t_names = [t.name for t in self.site.taxonomies]
         with open(src, "rt") as fd:
             try:
-                meta, self.rst_body, self.rst_parts = parse_rest(fd)
+                meta, self.rst_body, self.rst_parts = parse_rest(fd, t_names)
                 self.meta.update(**meta)
             except:
                 log.exception("%s: failed to parse front matter", self.src_relpath)
