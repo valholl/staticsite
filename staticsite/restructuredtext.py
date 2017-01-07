@@ -7,12 +7,35 @@ import io
 import pytz
 import datetime
 import dateutil.parser
-from docutils.core import publish_parts, publish_doctree
-from docutils.nodes import docinfo, title
+from docutils.core import publish_doctree, publish_programmatically
+from docutils.nodes import docinfo
+import docutils.nodes
+import docutils.io
+from docutils.transforms import Transform
+from docutils.writers.html5_polyglot import Writer as HTMLWriter
 
 import logging
 
 log = logging.getLogger()
+
+
+class LinkResolver(Transform):
+    default_priority = 600
+
+    def apply(self):
+        # TODO: actually implement the link resolver
+        for node in self.document.traverse():
+            if isinstance(node, docutils.nodes.target):
+                print(node)
+            if isinstance(node, docutils.nodes.image):
+                print(node)
+
+
+class MyWriter(HTMLWriter):
+    def get_transforms(self):
+        transforms = super(MyWriter, self).get_transforms()
+        transforms.append(LinkResolver)
+        return transforms
 
 
 def parse_rest(fd, t_names):
@@ -21,8 +44,8 @@ def parse_rest(fd, t_names):
 
     Return a tuple of 3 elements:
         * a dict with the first docinfo entries
-        * the rst text without the first docinfo
-        * the html5 parts rendered from this text
+        * the doctree with the docinfo removed
+        * the parts published by the html5 writer
     """
     rst_lines = fd.readlines()
 
@@ -42,22 +65,35 @@ def parse_rest(fd, t_names):
                         for tag in tag_list.children:
                             tags.append(tag.astext())
                     except:
-                        log.exception("%s: failed to parse front matter", self.src_relpath)
+                        log.exception("failed to parse front matter")
                     docinfo_data[t] = tags
         else:
             docinfo_data[child.tagname] = child.astext()
     doctree.remove(info)
 
-    # remove docinfo and empty lines
-    while (rst_lines[0] == '' or rst_lines[0][0] in [':', ' ', '\t']):
-        rst_lines.pop(0)
+    parts = publish_parts_from_doctree(doctree)
 
-    # render html5 parts
-    rst_text = ''.join(rst_lines)
-    parts = publish_parts(rst_text, writer_name="html5")
+    return docinfo_data, doctree, parts
 
-    return docinfo_data, rst_text, parts
 
+def publish_parts_from_doctree(doctree):
+    writer = MyWriter()
+    output, pub = publish_programmatically(
+        source=doctree, source_path=None,
+        source_class=docutils.io.DocTreeInput,
+        destination=None, destination_path=None,
+        destination_class=docutils.io.StringOutput,
+        reader=None, reader_name='doctree',
+        parser=None, parser_name='null',
+        writer=writer, writer_name=None,
+        settings=None, settings_spec=None,
+        settings_overrides=None,
+        config_section=None,
+        enable_exit_status=False
+        )
+    parts = pub.writer.parts
+
+    return parts
 
 class ReSTPages:
     def __init__(self, site):
@@ -81,7 +117,7 @@ class ReSTPages:
     def render(self, page, content=None):
         if content is None:
             content = page.get_content()
-        return publish_parts(content, writer_name="html5")['body']
+        return publish_parts_from_doctree(content)['body']
 
     def try_load_page(self, root_abspath, relpath):
         if not (relpath.endswith(".rst") or relpath.endswith(".rest")):
@@ -162,7 +198,7 @@ class ReSTPage(Page):
         self.rest_html = None
 
     def get_content(self):
-        return self.rst_body
+        return self.doctree
 
     def read_metadata(self):
         src = self.src_abspath
@@ -172,7 +208,7 @@ class ReSTPage(Page):
         t_names = [t.name for t in self.site.taxonomies]
         with open(src, "rt") as fd:
             try:
-                meta, self.rst_body, self.rst_parts = parse_rest(fd, t_names)
+                meta, self.doctree, self.rst_parts = parse_rest(fd, t_names)
                 self.meta.update(**meta)
             except:
                 log.exception("%s: failed to parse front matter", self.src_relpath)
